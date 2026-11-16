@@ -1,1 +1,5 @@
-# dragon-king-game
+# أنقذي القرية من ملك التنانين
+
+لعبة مغامرات خيالية ثنائية الأبعاد، حتى ٤ لاعبين عبر رمز الغرفة.
+
+العبي الآن: https://muniraalhilal.github.io/dragon-king-game/
