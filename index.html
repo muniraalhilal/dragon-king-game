@@ -359,7 +359,7 @@ const OUTRO_T=['عادت الفتاة وأصدقاؤها إلى القرية ع�
 const ST={name:'splash',t:0,scene:0,ev:{}};let fade=0,fadeDir=0,fadeCb=null,NP=1,hintT=0;const pl=[];
 const NET={on:false,host:false,code:'',room:null,me:0,slots:{},count:1,ep:0,pe:0,arg:undefined,lost:0,hostSeen:false,tp:0};
 const ctl=p=>!NET.on||p.i===NET.me,solo=()=>NP===1||NET.on,auth=()=>!NET.on||NET.host;
-const PEERMODE=typeof mqtt!=='undefined';
+const PEERMODE=typeof mqtt!=='undefined',GHL='<br>للعب مع الصديقات من أي جهاز افتحوا جميعاً هذا الرابط: <a href="https://muniraalhilal.github.io/dragon-king-game/" target="_blank" rel="noopener" style="color:#ffe27a;pointer-events:auto;direction:ltr;display:inline-block">muniraalhilal.github.io/dragon-king-game</a>';
 function relayRoom(code){return new Promise(res=>{const URLS=window.MQTT_URLS||['wss://broker.emqx.io:8084/mqtt','wss://broker.hivemq.com:8884/mqtt'],myId=Math.random().toString(36).slice(2,10),base='svdk1/'+code+'/p/',peers={};let mine={},done=false,n=0,iv=0;
  const room={presence:async p=>{const m=Object.assign({},mine);for(const k in p){if(p[k]===null)delete m[k];else m[k]=p[k];}mine=m;},
   peers:()=>[{peer:myId,sameTab:true,presence:mine}].concat(Object.keys(peers).filter(k=>Date.now()-peers[k].ts<3500).map(k=>({peer:k,sameTab:false,presence:peers[k].d}))),
@@ -372,16 +372,16 @@ function relayRoom(code){return new Promise(res=>{const URLS=window.MQTT_URLS||[
  setTimeout(()=>{if(!done){done=true;room.close();res({error:'timeout'});}},12000);});}
 async function getRoom(){if(NET.room)return NET.room;for(let i=0;i<20&&!(window.claude&&window.claude.use);i++)await new Promise(r=>setTimeout(r,150));try{NET.room=await window.claude.use('room');}catch(e){NET.room=null;}return NET.room;}
 function tView(v){['tMain','tJoin','tLobby'].forEach(id=>$(id).style.display=id===v?'block':'none');}
-async function hostRoom(){tView('tLobby');$('lTitle').textContent='رمز الغرفة';$('lCode').textContent='····';$('bPlay').style.display='none';$('lMsg').textContent='جارٍ إنشاء الغرفة…';
+async function hostRoom(){tView('tLobby');if(!PEERMODE){$('lTitle').textContent='';$('lCode').textContent='';$('bPlay').style.display='none';$('lMsg').innerHTML='اللعب برمز لا يعمل من هذا الرابط.'+GHL;return;}$('lTitle').textContent='رمز الغرفة';$('lCode').textContent='····';$('bPlay').style.display='none';$('lMsg').textContent='جارٍ إنشاء الغرفة…';
  if(PEERMODE){if(NET.busy)return;NET.busy=true;let r=null,code='';for(let i=0;i<4;i++){code=String(1000+Math.floor(Math.random()*9000));r=await relayRoom(code);if(r.error)break;await new Promise(q=>setTimeout(q,1300));if(!r.peers().some(p=>!p.sameTab&&p.presence&&p.presence.h===1))break;r.close();r={error:'busy'};}NET.busy=false;
   if(!r||r.error){$('lMsg').textContent='تعذّر فتح الغرفة ('+(r?r.error:'')+'). تحققي من اتصال الإنترنت ثم حاولي مجدداً.';return;}
   NET.room=r;NET.err='';NET.on=true;NET.host=true;NET.me=0;NET.code=code;NET.slots={};NET.count=1;$('lCode').textContent=code;return;}
- const r=await getRoom();if(!r){$('lMsg').textContent='تعذّر فتح غرفة. اللعب برمز يحتاج أن تكوني مسجّلة الدخول في Claude وتفتحي اللعبة من حسابك، وليس كزائرة عبر الرابط العام. يمكنكم الآن اللعب على نفس الجهاز.';return;}
+ const r=await getRoom();if(!r){$('lMsg').innerHTML='اللعب برمز لا يعمل من هذا الرابط.'+GHL;return;}
  NET.err='';NET.on=true;NET.host=true;NET.me=0;NET.code=String(1000+Math.floor(Math.random()*9000));NET.slots={};NET.count=1;$('lCode').textContent=NET.code;}
-async function joinRoom(){const c=$('code').value.replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/\D/g,'');if(c.length!==4){$('jMsg').textContent='الرمز مكوّن من ٤ أرقام';return;}$('jMsg').textContent='جارٍ البحث عن الغرفة…';
+async function joinRoom(){if(!PEERMODE){$('jMsg').innerHTML='الانضمام برمز لا يعمل من هذا الرابط.'+GHL;return;}const c=$('code').value.replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/\D/g,'');if(c.length!==4){$('jMsg').textContent='الرمز مكوّن من ٤ أرقام';return;}$('jMsg').textContent='جارٍ البحث عن الغرفة…';
  if(PEERMODE){if(NET.busy)return;NET.busy=true;const r=await relayRoom(c);NET.busy=false;if(r.error){$('jMsg').textContent='تعذّر الاتصال ('+r.error+'). تحققي من الإنترنت ثم حاولي مجدداً.';return;}
   NET.room=r;NET.err='';NET.on=true;NET.host=false;NET.code=c;NET.me=-1;NET.lost=0;NET.hostSeen=false;NET.ep=-1;return;}
- const r=await getRoom();if(!r){$('jMsg').textContent='تعذّر الاتصال بالغرف. الانضمام برمز يحتاج تسجيل الدخول في Claude بحساب له صلاحية على اللعبة، ولا يعمل للزائرات عبر الرابط العام.';return;}
+ const r=await getRoom();if(!r){$('jMsg').innerHTML='الانضمام برمز لا يعمل من هذا الرابط.'+GHL;return;}
  NET.err='';NET.on=true;NET.host=false;NET.code=c;NET.me=-1;NET.lost=0;NET.hostSeen=false;NET.ep=-1;}
 function leaveRoom(){if(NET.room&&NET.on)NET.room.presence({c:null,h:null,j:null,p:null,g:null,slots:null}).catch(()=>{});if(PEERMODE&&NET.room){const r=NET.room;NET.room=null;setTimeout(()=>r.close(),200);}NET.on=false;NET.host=false;NET.me=0;tView('tMain');}
 function remL1(p,dt){const a=p.r;if(!a||a[14]!==NET.ep)return;const was=p.alive;p.alive=!!a[5];if(was&&!p.alive)burst(p.x,p.y-30,16,{v:260,c:PCOL[p.c].rgb,k:'star',g:400});p.x=lerp(p.x,a[0],.4);p.y=lerp(p.y,a[1],.4);p.vx=a[2];p.on=!!a[3];p.face=a[4]||1;p.stun=a[6]?.2:0;p.inv=a[12]?.2:0;p.lastGY=p.y;if(p.on&&Math.abs(p.vx)>60)p.ph+=dt*15;}
